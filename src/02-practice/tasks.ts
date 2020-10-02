@@ -242,7 +242,7 @@ import { addItem, run } from './../03-utils';
 })();
 
 
-// Task 12. throwError
+// Task 13. throwError
 // Реализуйте функцию, которая создаст Observable, который завершиться с ошибкой, если в массиве встретится число 3.
 // Используейте from, switchMap, of, throwError
 (function task11() {
@@ -273,6 +273,8 @@ import { addItem, run } from './../03-utils';
         }, 3000);
     }
 
+    const reactiveDoAsyncJob = bindCallback(doAsyncJob);
+
     // const stream$ = reactiveDoAsyncJob({ name: 'Anna' });
 
     // run(stream$);
@@ -292,6 +294,7 @@ import { addItem, run } from './../03-utils';
         }, 3000);
     }
 
+    const reactiveDoAsyncJob = bindNodeCallback(doAsyncJob);
 
     // const stream$ = reactiveDoAsyncJob({ name: 'Anna' });
 
@@ -311,8 +314,9 @@ import { addItem, run } from './../03-utils';
 
     // getUsers().then(data => data.json()).then(addItem);
 
-
-    // const stream$ =
+    // const stream$ = defer(() => getUsers()).pipe(
+    //     switchMap(data => data.json()),
+    // );
 
     // addItem("I don't want that request now");
     // run(stream$);
@@ -342,7 +346,7 @@ import { addItem, run } from './../03-utils';
 
     const sequence = new C<number>().add(1).add(10).add(1000).add(10000);
 
-    // const stream$ =
+    // const stream$ = generate(0, i => i < sequence.size, i => i + 1, i => sequence.get(i));
 
     // run(stream$);
 })();
@@ -353,10 +357,11 @@ import { addItem, run } from './../03-utils';
 // используя те операторы, которые мы использовали во время практики, или любые другие.
 (function task18() {
 
+
     const usersData$ = ajax(`http://jsonplaceholder.typicode.com/users`);
     const fields$ = from(['name', 'email']);
 
-    const stream$ = interval(1000).pipe(
+    const stream1$ = interval(1000).pipe(
         take(1),
         switchMap(() => usersData$),
         map(data => data.response),
@@ -417,15 +422,14 @@ import { addItem, run } from './../03-utils';
 
 
 
-    // const stream$ = interval(2000).pipe(
-    //     take(1),
-    //     switchMap(() => usersData$),
-    //     map(data => data.response),
-    //     map(response => response.map(item => ({ name: item.name, email: item.email }))),
-    //     switchMap(result => from(result)),
-    //     catchError(error => of(error)),
-    // );
-
+    const stream$ = interval(2000).pipe(
+        take(1),
+        switchMap(() => usersData$),
+        map(data => data.response),
+        map(response => response.map(item => ({ name: item.name, email: item.email }))),
+        switchMap(result => concat(from(result), NEVER)),
+        catchError(error => of(error)),
+    );
 
     run(stream$);
 })();
