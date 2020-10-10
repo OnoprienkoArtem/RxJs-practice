@@ -1,4 +1,23 @@
-import { Observable, of, from, fromEvent, generate, pairs, EMPTY, concat, timer, zip, range, bindCallback, bindNodeCallback, fromEventPattern, interval, NEVER, throwError, defer } from "rxjs";
+import {
+    Observable,
+    of,
+    from,
+    fromEvent,
+    generate,
+    pairs,
+    EMPTY,
+    concat,
+    timer,
+    zip,
+    range,
+    bindCallback,
+    bindNodeCallback,
+    fromEventPattern,
+    interval,
+    NEVER,
+    throwError,
+    defer,
+} from "rxjs";
 import {
     map,
     take,
@@ -10,7 +29,6 @@ import {
     delay,
     concatMap,
     withLatestFrom,
-    pluck
 } from "rxjs/operators";
 import { fromFetch } from "rxjs/fetch";
 import { ajax } from "rxjs/ajax";
@@ -361,75 +379,49 @@ import { addItem, run } from './../03-utils';
     const usersData$ = ajax(`http://jsonplaceholder.typicode.com/users`);
     const fields$ = from(['name', 'email']);
 
-    const stream1$ = interval(1000).pipe(
-        take(1),
-        switchMap(() => usersData$),
-        map(data => data.response),
-        withLatestFrom(fields$.pipe(
-            reduce((acc,value) => {
-                acc.push(value);
-                return acc;
-            }, []),
-        )),
-        switchMap(arr => of(arr).pipe(
-            tap(r => console.log('+', r)),
-
-            // filter(([dataObj, fields]) => {
-            //         return dataObj.map(i => {
-            //             console.log('aa', i)
-            //             return fields.indexOf(dataObj[i]) > -1
-            //         })
-            //     }
-            // ),
-        )),
-        tap(d => console.log('d => ', d)),
-
-        // withLatestFrom(fields$.pipe(
-        //     reduce((acc,value) => {
-        //         acc.push(value);
-        //         return acc;
-        //     }, [])
-        // )),
-
-        // filter(([dataObj, fields]) => {
-        //         return dataObj.map(i => {
-        //             return fields.indexOf(dataObj[0]) > -1
-        //         })
-        //     }
-        // ),
-
-        // filter(([dataObj, fields]) => {
-        //     console.log(fields)
-        //     return fields.indexOf(dataObj[0]) > -1
-        // }),
-        // reduce((acc, [[field, fieldValue]]) => {
-        //     return { ...acc, [field]: fieldValue }
-        // }, {}),
-
-        // reduce((acc, [[dataObj, fields]]) => {
-        //         return {
-        //             ...acc,
-        //             [fields]: dataObj[fields]
-        //         }
-        //     }, {},
-        // ),
-        // concatMap(usersData => of(usersData).pipe(
-        //     tap(d => console.log('concatMap => ', d)),
-        // )),
-
-        switchMap(arr => of(arr)),
-    );
-
-
-
-    const stream$ = interval(2000).pipe(
+    const stream$ = timer(2000).pipe(
         take(1),
         switchMap(() => usersData$),
         map(data => data.response),
         map(response => response.map(item => ({ name: item.name, email: item.email }))),
-        switchMap(result => concat(from(result), NEVER)),
+        withLatestFrom(fields$.pipe(
+            reduce((acc, elem) => {
+                acc.push(elem);
+                return acc;
+            }, []),
+        )),
+        map(arr => {
+            const [data, fields] = arr;
+
+            data.sort((el1, el2) => {
+                const [field1] = fields;
+                return el1[field1].localeCompare(el2[field1]);
+            });
+
+            data.sort((el1, el2) => {
+                const [field1, field2] = fields;
+                if (el1[field1] === el2[field1]) {
+                    return el1[field2].localeCompare(el2[field2]);
+                }
+            });
+
+            return data;
+        }),
+        tap(d => console.log('d => ', d)),
+        switchMap(arr => from(arr)),
         catchError(error => of(error)),
     );
+
+
+
+    // const stream$ = interval(2000).pipe(
+    //     take(1),
+    //     switchMap(() => usersData$),
+    //     map(data => data.response),
+    //     map(response => response.map(item => ({ name: item.name, email: item.email }))),
+    //     switchMap(result => concat(from(result), NEVER)),
+    //     catchError(error => of(error)),
+    // );
 
     run(stream$);
 })();
